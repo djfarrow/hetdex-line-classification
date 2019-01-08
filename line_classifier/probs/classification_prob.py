@@ -1,19 +1,21 @@
 """
 
 Carry out a Bayesian classification of a line source based off
-of Ariel Sanchez's musings
+off the proposed classifier from Farrow+ 2018
 
-Author: Daniel Farrow 2018 (parts adapted from Andrew Leung's code from Leung+ 2016)
+Author: Daniel Farrow 2018 (parts adapted from Andrew Leung's code from Leung+ 2017)
 
 
 """
-
 from numpy import pi, square, exp, array, power, zeros, ones, isnan, sqrt, mean
-from 
+from scipy.stats import norm
 
-from simcat.equivalent_width import InterpolatedEW
+from line_classifier.lfs_ews.luminosity_function import LuminosityFunction
+from line_classifier.lfs_ews.equivalent_width import EquivalentWidthAssigner, InterpolatedEW
+from line_classifier.misc.tools import generate_cosmology_from_config
 
 from astropy.table import Table
+
 
 class TooFaintForLimitsException(Exception):
     pass
@@ -24,7 +26,7 @@ class NegativeProbException(Exception):
 class UnrecognizedSourceException(Exception):
     pass
 
-def return_delta_volume(wl, lambda_, cosmo):
+def return_delta_volume(wl, lambda_, cosmo, wl_lae=1215.67):
     """
     Return the z*dV/dz at a given wavelength. Scales
     all redshift ranges to the LAE redshift range
@@ -35,6 +37,11 @@ def return_delta_volume(wl, lambda_, cosmo):
         the observed wavelengths
     lambda_ : float
         the wavelength of the line to consider
+    cosmo : astropy.cosmology:FLRW
+        a astropy cosmology object
+    wl_lae : float
+        the wavelength if Lyman-alpha
+        emission (Optional)
 
     Returns
     -------
@@ -44,20 +51,16 @@ def return_delta_volume(wl, lambda_, cosmo):
     """
 
     zs = wl/lambda_ - 1.0
-   
-    # Minimum z for OII 
-    bad_indices = zs < 0.05
 
     dvdz = cosmo.differential_comoving_volume(zs)
-    dvdz[bad_indices] = 0.0
 
     x = cosmo.comoving_distance(zs).to("Mpc")
 
     # Fixed delta wavelength, no z factors as 
     # should all be Z_lae and all cancel
-    return dvdz*wavelengths["LAE"]/lambda_
+    return dvdz*wl_lae/lambda_
 
-def return_lf_n(flux, zs, lfa, cosmo, lambda_):
+def return_lf_n(flux, zs, lfa, cosmo):
     """
  
     Return (L/L*)*dN/dL for a redhsift of
@@ -69,11 +72,11 @@ def return_lf_n(flux, zs, lfa, cosmo, lambda_):
        the fluxes of the sources
     zs : array
        the redshifts of the sources
-    lf : LuminosityFunction
+    lfa : LuminosityFunction
        class to return the LFs
     cosmo : astropy.cosmology
        class for the cosmology
-
+ 
     Returns
     -------
     dN/dL : array
@@ -119,7 +122,7 @@ def return_ew_n(ew_obs, zs, ew_func):
 
     return new
 
-def n_additional_line(name, line_fluxes, line_flux_errors, addl_fluxes, addl_fluxes_error, rel_line_strength):
+def n_additional_line(line_fluxes, line_flux_errors, addl_fluxes, addl_fluxes_error, rel_line_strength):
     """
     Return flux*dN/d(flux) for the flux of an additional
     emission line detected in the spectrum assuming the 
@@ -133,8 +136,6 @@ def n_additional_line(name, line_fluxes, line_flux_errors, addl_fluxes, addl_flu
 
     Parameters
     ----------
-    name : str
-        name of line
     line_fluxes, line_flux_errors : array or float
         flux(es) and error(s) of the LAE or OII candidate
     addl_fluxes, addl_fluxes_error : array or float
@@ -153,7 +154,8 @@ def n_additional_line(name, line_fluxes, line_flux_errors, addl_fluxes, addl_flu
 
     # Error on additional line + error on prediction using relative line strengths
     stddevs = addl_fluxes_error
-    stddevs_with_line = sqrt(square(stddevs))# + square(rel_line_strengths[name]*line_flux_errors))
+    # XXX setup when no error on line
+    stddevs_with_line = sqrt(square(stddevs))# + square(rel_line_strength*line_flux_errors))
 
     expected_flux = rel_line_strength*line_fluxes
 
@@ -165,7 +167,7 @@ def n_additional_line(name, line_fluxes, line_flux_errors, addl_fluxes, addl_flu
 
     # Array or floats passed?
     try:
-        len(pdata_lae)
+        len(addl_fluxes)
     except TypeError as e:
         if out_of_range:
             ndata_lae = 1.0
@@ -179,8 +181,7 @@ def n_additional_line(name, line_fluxes, line_flux_errors, addl_fluxes, addl_flu
 
 
 def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, which_color, 
-                addl_fluxes, addl_fluxes_error, addl_line_names, flim_file, h=0.67, extended_output=False, 
-                oii_zlim=0.05):
+                addl_fluxes, addl_fluxes_error, addl_line_names, flim_file, h=0.67, extended_output=False):
     """
     Return P(LAE|DATA)/P(DATA) and P(DATA|LAE)P(LAE)/(P(DATA|OII)P(OII)) given 
 
@@ -188,7 +189,9 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
 
     Parameters
     ----------
-    ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err c_obs : array
+    config : ConfigParser
+        configuration object 
+    ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs : array
         positions, redshifts (assuming LAE), line fluxes, errors on
         line fluxes, equivalent widths, errors on EW and colours 
         of the sources. (XXX Latter two not used!)
@@ -212,8 +215,6 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
         Hubbles constant/100
     extended_output : bool
         Return extended output
-    oii_zlim : float
-       the lower redshift limit to detect OII
 
     Returns
     -------
@@ -232,20 +233,19 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
         in other emission lines
     """
 
-
-    ### XXX GRAB THIS FROM CONFIG
-    print("Using Hubbles Constant of {:f}".format(h*100))
-    lae_ew = get_ew_assigner('lae_gr17')
-    lae_ew_obs = InterpolatedEW("lae_log_ew_obs_lae_gr17_0_800_glim25.fits")
-
-    oii_ew = get_ew_assigner('oii_ci13')
-    oii_ew_obs = InterpolatedEW("oii_log_ew_obs_0_600_glim25.fits")
-
-    lf_lae = get_luminosity_assigner(ew_assigner=lae_ew, h=h)
-    lf_oii = get_luminosity_assigner_oii(h=h)
-
+    lae_ew = EquivalentWidthAssigner.from_config(config, 'LAE_EW')
+    oii_ew = EquivalentWidthAssigner.from_config(config, "OII_EW")
+    lf_lae = LuminosityFunction.from_config(config, "LAE_LF", ew_assigner=lae_ew)
+    lf_oii = LuminosityFunction.from_config(config, "OII_LF")
     cosmo = generate_cosmology_from_config(config)
-    ###                ###
+
+    oii_zlim = config.getfloat("General", "oii_zlim")
+
+    print("Using Hubbles Constant of {:f}".format(h*100))
+
+    lae_ew_obs = InterpolatedEW(config.get("InterpolatedEW", "lae_file"))
+    oii_ew_obs = InterpolatedEW(config.get("InterpolatedEW", "oii_file"))
+    oii_ew_max = config.getfloat("InterpolatedEW", "oii_ew_max")
 
     # Cast everything to arrays
     ra = array(ra)
@@ -255,28 +255,31 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     ews_obs = array(ews_obs)
     c_obs = array(c_obs)
 
-    wlse = (zs + 1.0)*wavelengths["LAE"]
-    zs_oii = wls/wavelengths["OII"] - 1.0
+    wls = (zs + 1.0)*config.getfloat("wavelengths", "LAE")
+    zs_oii = wls/config.getfloat("wavelengths", "OII") - 1.0
 
     # Compute the volume elements 
-    dvol_lae = return_delta_volume(wls, wavelengths["LAE"], cosmo)
-    dvol_oii = return_delta_volume(wls, wavelengths["OII"], cosmo)
+    dvol_lae = return_delta_volume(wls, config.getfloat("wavelengths", "LAE"), cosmo, wl_lae=config.getfloat("wavelengths", "LAE"))
+    dvol_oii = return_delta_volume(wls, config.getfloat("wavelengths", "OII"), cosmo, wl_lae=config.getfloat("wavelengths", "LAE") )
+
+    # Remove source too close to be mistaken for LAEs and therefore removed
+    # from catalogue (follows argument used for Leung+ 2017)
+    dvol_oii[zs_oii < oii_zlim] = 0.0
 
     # EW factors
-    ew_n_lae = return_ew_n(ews_obs, ew_err, zs, lae_ew_obs)
-    ew_n_oii = return_ew_n(ews_obs, ew_err, zs_oii, oii_ew_obs)
+    ew_n_lae = return_ew_n(ews_obs, zs, lae_ew_obs)
+    ew_n_oii = return_ew_n(ews_obs, zs_oii, oii_ew_obs)
 
     # Always LAE according to Leung+ (seems to be true in the sims, very, very rare for OII)
     # Might need to change if EW_ERR grows for OII
     ew_n_oii[ews_obs < 0.0] = 0.0
 
-    # XXX Replace in config 
     # Upper limit of the OII EW tabulation
-    ew_n_oii[ews_obs > 600.0] = 0.0
+    ew_n_oii[ews_obs > oii_ew_max] = 0.0
 
     # Luminosity function factors
-    lf_n_lae = return_lf_n(fluxes, zs, lf_lae, cosmo, wavelengths["LAE"])
-    lf_n_oii = return_lf_n(fluxes, zs_oii, lf_oii, cosmo, wavelengths["OII"])
+    lf_n_lae = return_lf_n(fluxes, zs, lf_lae, cosmo)
+    lf_n_oii = return_lf_n(fluxes, zs_oii, lf_oii, cosmo)
 
     # Add additional lines to classification probability (if they're there)
     n_lines_lae = 1.0
@@ -284,7 +287,7 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     if type(addl_line_names) != type(None):
         for line_name, taddl_fluxes, taddl_fluxes_errors in zip(addl_line_names, addl_fluxes[:], addl_fluxes_error[:]):
 
-            tn_lines_lae, tn_lines_oii = prob_additional_line(line_name, fluxes, flux_errs, taddl_fluxes, taddl_fluxes_errors, zs_oii)
+            tn_lines_lae, tn_lines_oii = n_additional_line(fluxes, flux_errs, taddl_fluxes, taddl_fluxes_errors, config.getfloat("RelativeLineStrengths", line_name))
 
             if any(tn_lines_lae < 0.0) or any(tn_lines_oii < 0.0):
                 dodgy_is = tn_lines_lae < 0.0

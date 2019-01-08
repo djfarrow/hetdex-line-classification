@@ -1,0 +1,20 @@
+08-01-2018 Daniel Farrow
+
+   * README.md: Listed stuff that doesn't work or isn't implemented
+   * line_classifier/probs/classification_prob.py: Integrated with rest of 
+                          new version of code. Uses config files now
+   * tests/test_classification_prob_leung.py: Tests for the above
+   * scripts/add_prob_to_catalogue.py: Script to add probabilities to a
+                                       catalogue
+   * tests/data/config/*: Added pretabulated matrices of dN/dEW versus
+                          redshift
+   * tests/data/universe.cfg: Added config parameters for the new-style
+                              P(LAE) calculations in add_prob_to_catalogue
+   * tests/conftest.py: Added fixture to set up test directory with relevant
+                        config
+
+20-12-2018 Daniel Farrow
+
+   * First commit of a code that has be removed
+     and refactorised from the older "simulate_catalogue"
+     code. 

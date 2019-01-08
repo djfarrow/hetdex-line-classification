@@ -12,14 +12,13 @@ from line_classifier.lfs_ews.luminosity_function import LuminosityFunction
 from line_classifier.misc.tools import generate_cosmology_from_config, read_flim_file
 
 def return_lf(config, request, **kwargs):
-    """ Fixture to allow looping over LF functions """
+    """ Tool to allow looping over LF functions """
     if request == "oii":
         return LuminosityFunction.from_config(config, "OII_LF", **kwargs)
     elif request == "lae":
         return LuminosityFunction.from_config(config, "LAE_LF", **kwargs)
     else:
         raise Exception("Unrecognized LF type")
-
 
 @pytest.mark.parametrize("case, z", [("lae", 2.5), ("oii", 0.3)])
 def test_lf_integrator(config, case, z, flim_file):

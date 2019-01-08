@@ -31,7 +31,8 @@ pip install .
 
 ## Known issues
 
-Currently Python 3 is not supported. The new stuff in ```classification_prob.py`` tested.
+1. Currently Python 3 is not supported. 
+2. Colors aren't used in the probability yet.  
 
 ## References
 
