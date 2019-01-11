@@ -134,7 +134,7 @@ def test_ew_prob(lae_ew_assigner, oii_ew_assigner, mode, ew_obs, z, expt):
    assert val_lae == pytest.approx(expt, rel=1e-3)
 
 
-# 5% of posterior odds ratio and 5% of prob_lae
+# 10% of posterior odds ratio and 5% of prob_lae compared to original Andrew Leung code
 # need to be careful here as parameters not valid for any source will raise exception! 
 @pytest.mark.parametrize("z, fluxes, ew_obs, addl_fluxes, addl_names, e_ratio, e_prob_lae",
                                                                    [
@@ -143,9 +143,12 @@ def test_ew_prob(lae_ew_assigner, oii_ew_assigner, mode, ew_obs, z, expt):
                                                                     (3.18, 9e-17, 40, None, None, 0.17790889751426178, 0.151037909544365),
                                                                     (2.08, 9e-17, 40, [[5e-17]], ["NeIII"], 10.917948575339162, 0.91609294219734949),
                                                                     (2.12, 9e-17, 40, [[6e-17]], ["H_beta"], 2.2721726484396545e-09, 2.2721726536024229e-09),
-                                                                    (2.08, 9e-17, 40, [[7e-17], [9e-17*4.752/1.791]], ["OIII4959", "OIII5007"], 0.0, 0.0)
-                                                                   ])
-
+                                                                    (2.08, 9e-17, 40, [[7e-17], [9e-17*4.752/1.791]], ["OIII4959", "OIII5007"], 0.0, 0.0),
+                                                                    (2.373678804418128, 4.355691265144264E-17, 34.99668429707373, 
+                                                                     [[-1.338393901007366E-18], [2.0183850784203426E-17], [2.0248272025151368E-17]],
+                                                                     ["NeIII", "H_beta", "OIII4959"], 2.4124703809980317, 0.70695716347652693)
+                                                                    ])
+                                                                   
 def test_source_prob(config, z, fluxes, ew_obs, flim_file, addl_fluxes, addl_names, e_ratio, e_prob_lae):
     """
     Test source probability
@@ -169,14 +172,14 @@ def test_source_prob(config, z, fluxes, ew_obs, flim_file, addl_fluxes, addl_nam
         posterior_odds, prob_lae_given_data = source_prob(config, [100.0], [0.0], [z], array([fluxes]), array([0.0]), [ew_obs], [0.0], None, None, None, None, None,
                                                           flim_file)
 
-    if e_ratio > 1e-40 :
-        assert abs(e_ratio - posterior_odds) < 0.05*e_ratio
-    else:
-        assert posterior_odds < 1e-40
-
     if e_prob_lae > 0.0:
         assert abs(e_prob_lae - prob_lae_given_data) < 0.05*e_prob_lae
     else:
         assert prob_lae_given_data < 1e-40
+
+    if e_ratio > 1e-40 :
+        assert abs(e_ratio - posterior_odds) < 0.1*e_ratio
+    else:
+        assert posterior_odds < 1e-40
 
 

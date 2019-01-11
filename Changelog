@@ -1,4 +1,15 @@
-08-01-2018 Daniel Farrow
+2018-01-11 Daniel Farrow
+
+   * line_classifier/lfs_ews/luminosity_function.py: Removed unused class
+        variables
+   * line_classifier/probs/classification_prob.py: NaN probabilities now
+         raise a warning instead of an exception in order to be more
+	 robust to realistic noisy data. Added logging
+   * line_classifier/probs/classification_prob_leung.py: As above
+   * tests/test_classification_prob_leung.py: Added an extra test
+   * scripts/add_prob_to_catalogue.py: Use observed flux in script
+
+2018-01-08 Daniel Farrow
 
    * README.md: Listed stuff that doesn't work or isn't implemented
    * line_classifier/probs/classification_prob.py: Integrated with rest of 
@@ -13,7 +24,7 @@
    * tests/conftest.py: Added fixture to set up test directory with relevant
                         config
 
-20-12-2018 Daniel Farrow
+2018-12-20 Daniel Farrow
 
    * First commit of a code that has be removed
      and refactorised from the older "simulate_catalogue"

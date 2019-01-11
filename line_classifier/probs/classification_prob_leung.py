@@ -10,13 +10,18 @@ Author: Daniel Farrow 2018 (parts adapted from Andrew Leung's code)
 
 from __future__ import absolute_import, print_function
 
+import logging
 from numpy import pi, square, exp, array, power, zeros, ones, isnan, sqrt, abs, errstate
+from numpy import any as nany
 from astropy.table import Table
 from scipy.stats import norm
 from scipy.special import gammainc, gammaincc, gamma
 from line_classifier.lfs_ews.luminosity_function import LuminosityFunction, gamma_integral_limits
 from line_classifier.lfs_ews.equivalent_width import EquivalentWidthAssigner
 from line_classifier.misc.tools import read_flim_file, generate_cosmology_from_config
+
+logging.basicConfig(level=logging.INFO)
+_logger = logging.getLogger("prob")
 
 class TooFaintForLimitsException(Exception):
     pass
@@ -98,8 +103,8 @@ class LFIntegrator(object):
             if lmins < llims:
                 raise TooFaintForLimitsException("There are Lmin values less than the limiting L")
         else:
-            if any(lmins < llims):
-                print(len(lmins[lmins < llims]), lmins[lmins < llims], llims[lmins < llims])
+            if nany(lmins < llims):
+                _logger.error(len(lmins[lmins < llims]), lmins[lmins < llims], llims[lmins < llims])
                 raise TooFaintForLimitsException("There are Lmin values less than the limiting L")
  
         # If no flux errors included just integrate the luminosity function analytically
@@ -199,7 +204,7 @@ def luminosity_likelihoods(config, ras, decs, zs, fluxes, lf, lambda_, flim_file
     out_of_range_is = llower < llims
 
     # Set lower limit to flux limit and add missing range to upper limit
-    if any(out_of_range_is):
+    if nany(out_of_range_is):
         lrange = lupper[out_of_range_is] - llower[out_of_range_is]
         lupper[out_of_range_is] = llims[out_of_range_is] + lrange
         llower[out_of_range_is] = 1.0001*llims[out_of_range_is]
@@ -214,10 +219,10 @@ def luminosity_likelihoods(config, ras, decs, zs, fluxes, lf, lambda_, flim_file
     prob_flux[ns < -98] = 0.0
     ns[ns < -98] = 0.0
 
-    if any(prob_flux < 0.0):
+    if nany(prob_flux < 0.0):
         dodges_is = prob_flux < 0.0
-        print("zs, L_lower  L_upper  LF_Integral  Norm")
-        print(zs[dodges_is], llower[dodges_is], lupper[dodges_is], lf_ints[dodges_is], ns[dodges_is])
+        _logger.error("zs, L_lower  L_upper  LF_Integral  Norm")
+        _logger.error(zs[dodges_is], llower[dodges_is], lupper[dodges_is], lf_ints[dodges_is], ns[dodges_is])
         raise NegativeProbException("The probability here is negative!")
 
     # Now derive the expected number of sources in the wavelength slices
@@ -382,7 +387,7 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
 
     oii_zlim = config.getfloat("General", "oii_zlim")
 
-    print("Using Hubbles Constant of {:f}".format(cosmo.H0))
+    _logger.info("Using Hubbles Constant of {:f}".format(cosmo.H0))
 
     # Cast everything to arrays
     ra = array(ra)
@@ -409,31 +414,30 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     if type(addl_line_names) != type(None):
         for line_name, taddl_fluxes, taddl_fluxes_errors in zip(addl_line_names, addl_fluxes[:], addl_fluxes_error[:]):
 
-            #print(true_fluxes - fluxes)
             rlstrgth = config.getfloat("RelativeLineStrengths", line_name)
             tprob_lines_lae, tprob_lines_oii = prob_additional_line(line_name, fluxes, flux_errs, taddl_fluxes, taddl_fluxes_errors, rlstrgth)
 
-            if any(tprob_lines_lae < 0.0) or any(tprob_lines_oii < 0.0):
-                dodgy_is = tprob_lines_lae < 0.0
-                print(tprob_lines_lae[dodgy_is], fluxes[dodgy_is], taddl_fluxes[dodgy_is], zs_oii[dodgy_is], line_name)
-                raise NegativeProbException("The probability here is negative!")
+            if nany(tprob_lines_lae < 0.0) or nany(tprob_lines_oii < 0.0):
+                _logger.warn("Negative probability for line {:s}".format(line_name))
+                #dodgy_is = tprob_lines_lae < 0.0
+                #_logger.error(tprob_lines_lae[dodgy_is], fluxes[dodgy_is], taddl_fluxes[dodgy_is], zs_oii[dodgy_is], line_name)
+                #raise NegativeProbException("The probability here is negative!")
 
             # Not an LAE or an OII?
             neither = (tprob_lines_lae + tprob_lines_oii) < 1e-30
-            if any(neither):
-                print("================================================================")
-                print(fluxes[neither], flux_errs[neither], taddl_fluxes[neither], taddl_fluxes_errors[neither], zs_oii[neither], line_name)
-                print(flim_file)
-                raise UnrecognizedSourceException("Neither OII or LAE")
-
+            if nany(neither):
+                _logger.warn("Emission line {:s} doesn't look like it's from OII or LAE!")
+                #_logger.error(fluxes[neither], flux_errs[neither], taddl_fluxes[neither], taddl_fluxes_errors[neither], zs_oii[neither], line_name)
+                #_logger.error(flim_file)
+                #raise UnrecognizedSourceException("Neither OII or LAE")
 
             prob_lines_lae *= tprob_lines_lae
             prob_lines_oii *= tprob_lines_oii
 
     # Carry out integrals of the luminosity function
-    print('Computing OII posteriors')
+    _logger.info('Computing OII posteriors')
     prob_flux_oii, noiis = luminosity_likelihoods(config, ra, dec, zs_oii, fluxes, lf_oii, config.getfloat("wavelengths", "OII"), flim_file, cosmo, delta_l=0.05)
-    print('Computing LAE posteriors')
+    _logger.info('Computing LAE posteriors')
     prob_flux_lae, nlaes = luminosity_likelihoods(config, ra, dec, zs, fluxes, lf_lae, config.getfloat("wavelengths","LAE"), flim_file, cosmo, delta_l=0.05)
 
     # Compute the LAE/OII priors
@@ -465,15 +469,16 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
 
     prob_lae_given_data = prob_data_lae*prior_lae/prob_data
 
-    # XXX TO DO convert this to a warning?
-    if any(prob_lae_given_data < 0.0) or any(isnan(prob_lae_given_data)):
-        dodgy_is = (prob_lae_given_data < 0.0) | isnan(prob_lae_given_data)
-        print(prob_lae_given_data[dodgy_is], prob_data_lae[dodgy_is], prob_data_oii[dodgy_is], 
-              prior_lae[dodgy_is], prior_oii[dodgy_is], prob_ew_lae[dodgy_is], prob_ew_oii[dodgy_is],
-              ews_obs[dodgy_is], prob_lines_lae[dodgy_is], prob_lines_oii[dodgy_is], zs_oii[dodgy_is])
-        raise NegativeProbException("""The probability here is negative or NAN! Could be low-z OII (z<0.05) or weird 
-                                       source neither OII or LAE!""")
+    if nany(prob_lae_given_data < 0.0) or nany(isnan(prob_lae_given_data)):
+        #dodgy_is = (prob_lae_given_data < 0.0) | isnan(prob_lae_given_data)
+        #print(prob_lae_given_data[dodgy_is], prob_data_lae[dodgy_is], prob_data_oii[dodgy_is], 
+        #      prior_lae[dodgy_is], prior_oii[dodgy_is], prob_ew_lae[dodgy_is], prob_ew_oii[dodgy_is],
+        #      ews_obs[dodgy_is], prob_lines_lae[dodgy_is], prob_lines_oii[dodgy_is], zs_oii[dodgy_is])
+        #raise NegativeProbException("""The probability here is negative or NAN! Could be low-z OII (z<0.05) or weird 
+        #                               source neither OII or LAE!""")
+        _logger.warn("Some sources appear to be neither LAE or OII!")
 
+    
     # Not a chance it's OII
     posterior_odds[(prior_oii < 1e-80) | (prob_data_oii < 1e-80)] = 1e32
     prob_lae_given_data[(prior_oii < 1e-80) | (prob_data_oii < 1e-80)] = 1.0

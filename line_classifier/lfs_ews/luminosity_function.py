@@ -73,7 +73,7 @@ def schechter_factory(Lstar, alpha, phi_star):
     return schec
 
 
-class LuminosityFunction():
+class LuminosityFunction(object):
     """
     Class to deal with luminosity functions
 
@@ -98,22 +98,16 @@ class LuminosityFunction():
        the H/100 of the cosmology appropriate for the
        luminosity function (only passed to store here, not
        used in class)
-    zbinsize : float (optional)
-        The size of the gaps between the z-bins
-        (default 0.002; tested 1% accuracy)
     ew_assigner : simcat.equivalent_width:EquivalentWidthAssigner
         If passed, increase the predicted n-density values to 
         account for LAEs with EW<20
-    NLBINS : int (optional)
-       number of luminosity bins to integrate LF, between Lmin
-       and Lmax (default 2000; tested to 1% accuracy)
     interpolate_log : bool (optional)
        interpolate the lumonisity in log10 (default: True)
     """
 
     def __init__(self, Lstars, alphas, phi_stars, zs, zmin, zmax, lmin_lf,
-                 cosmo, flim, lf_h=1.0, det_frac_v_z = None, rseed=None, zbinsize=0.002, 
-                 ew_assigner=None, NLBINS=2000, interpolate_log=True):
+                 cosmo, flim, lf_h=1.0, det_frac_v_z = None, rseed=None, 
+                 ew_assigner=None, interpolate_log=True):
 
         if len(Lstars) != len(alphas) or len(zs) != len(alphas):
             raise ValueError("Lstar, alpha or zs are not all of the same length")
@@ -126,11 +120,7 @@ class LuminosityFunction():
         self.flim = flim
         self.zmin = zmin
         self.zmax = zmax
-        self.zbins = arange(zmin, zmax, zbinsize)
-        self.zbins = arange(zmin, zmax, zbinsize)
-        self.zbin_cens = 0.5*(self.zbins[:-1] + self.zbins[1:])
         self.fourpi = 4.0*pi
-        self.NLBINS = NLBINS
         self.ew_assigner = ew_assigner
 
         # Note: Robin Ciardullo thinks a better form of evolution would be one 

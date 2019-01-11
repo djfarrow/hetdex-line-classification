@@ -24,7 +24,7 @@ config = RawConfigParser()
 config.read(opts.fconfig)
 
 # Other emission lines to include, set to None to not use this
-addl_el_names = ["NeIII"] #, "H_beta", "OIII4959", "OIII5007"]
+addl_el_names = ["NeIII", "H_beta", "OIII4959", "OIII5007"]
 
 table = Table.read(opts.filename)
 
@@ -38,12 +38,12 @@ else:
     addl_fluxes_error = None
 
 table["EW_ERR"] = 0.0
-table["PLAE"], table["PLAE_lum"], table["PLAE_ew"], table["PLAE_lines"]  = source_prob(config, table["ra"], table["dec"], table["z"], table["flux"], table["FLUX_ERR"], 
+table["PLAE"], table["PLAE_lum"], table["PLAE_ew"], table["PLAE_lines"]  = source_prob(config, table["ra"], table["dec"], table["z"], table["FLUX_OBS"], table["FLUX_ERR"], 
                                                                                        table["EW_OBS"], table["EW_ERR"], [None]*len(table), None, addl_fluxes,
                                                                                        addl_fluxes_error, addl_el_names, "../common_configuration_stuff/Line_flux_limit_5_sigma_baseline.dat", 
                                                                                        extended_output=True)
 
-table["posterior_odds_ratio_leung"], table["PLAE_leung"] = source_prob_leung(config, table["ra"], table["dec"], table["z"], table["flux"], table["FLUX_ERR"],
+table["posterior_odds_ratio_leung"], table["PLAE_leung"] = source_prob_leung(config, table["ra"], table["dec"], table["z"], table["FLUX_OBS"], table["FLUX_ERR"],
                                                                             table["EW_OBS"], table["EW_ERR"], [None]*len(table), None, addl_fluxes,
                                                                             addl_fluxes_error, addl_el_names, "Line_flux_limit_5_sigma_baseline.dat")
 
