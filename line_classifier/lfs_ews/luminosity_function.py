@@ -216,9 +216,9 @@ class LuminosityFunction(object):
         return Lmin
 
     def return_lmax_at_z(self, z):
-        """ Assume Lmax of 3000*Lmin - tested n-density to 1%"""
+        """ Assume Lmax of 6000*Lmin - tested n-density to 1%"""
 
         lmin = self.return_lmin_at_z(z)
 
-        return lmin*3000
+        return lmin*6000
  

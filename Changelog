@@ -1,5 +1,7 @@
 2019-01-15 Daniel Farrow
 
+    * line_classifier/lfs_ews/luminosity_function.py: Increase multiplier
+            factor when computing Lmax
     * line_classifier/lfs_ews/equivalent_width.py: Add option to normalize
          dists
     * scripts/add_prob_to_catalogue.py
