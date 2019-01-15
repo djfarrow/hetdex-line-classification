@@ -13,7 +13,7 @@ Daniel Farrow 2018 (MPE)
 from __future__ import absolute_import
 
 import json
-from numpy import log, exp, sqrt, square, copy, log10, isfinite, digitize, array, zeros
+from numpy import log, exp, sqrt, square, copy, log10, isfinite, digitize, array, zeros, trapz
 from numpy.random import uniform, seed
 from scipy.integrate import quad
 from scipy.interpolate import interp1d, RegularGridInterpolator 
@@ -34,18 +34,29 @@ class InterpolatedEW(object):
      filename : str
          a file containing the z, EW 
          and n values
+     normalize : bool (Optional)
+         optionally normalize the input 
+         distributions. Off by default as
+         need to account for EWs outside
+         of the range of the cube in norm
+         (default: False)
 
-     XXX TODO: Functions not properly normalised out to infinity,
-                need to do this? - Yes. For EWs we're over estimating
-                P(LAE) possibly!
      """
 
-     def __init__(self, filename, ):
+     def __init__(self, filename, normalize=False):
 
          hdus = fits.open(filename)
          self.zbcens = hdus["REDSHIFT"].data
          ew = hdus["EW_BCENS"].data
          data = hdus["Primary"].data
+
+         # Optionally normalize the distributions
+         if normalize:
+             for i in range(len(self.zbcens)):
+                 norm = trapz(data[i, :], x=ew)
+                 print(norm) 
+                 if norm > 0.0:                    
+                     data[i, :] /= norm
 
          self.minz = min(self.zbcens)
          self.maxz = max(self.zbcens)

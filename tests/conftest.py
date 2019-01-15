@@ -49,8 +49,8 @@ def tmpdir_with_config(tmpdir_factory, datadir):
  
     # XXX todo, replace with glob loop??
     shutil.copy(datadir.join("config").join("Line_flux_limit_5_sigma_baseline.dat").strpath, dirname.strpath)
-    shutil.copy(datadir.join("config").join("lae_log_ew_obs_lae_gr17_0_800_glim25.fits").strpath, dirname.strpath)
-    shutil.copy(datadir.join("config").join("oii_log_ew_obs_0_600_glim25.fits").strpath, dirname.strpath)
+    shutil.copy(datadir.join("config").join("lae_log_ew_obs_0_600_glim25_redo.fits").strpath, dirname.strpath)
+    shutil.copy(datadir.join("config").join("oii_log_ew_obs_0_600_glim25_redo.fits").strpath, dirname.strpath)
 
     return dirname.strpath
 

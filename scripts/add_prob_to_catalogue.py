@@ -24,7 +24,7 @@ config = RawConfigParser()
 config.read(opts.fconfig)
 
 # Other emission lines to include, set to None to not use this
-addl_el_names = ["NeIII", "H_beta", "OIII4959", "OIII5007"]
+addl_el_names = ["NeIII"] #, "H_beta", "OIII4959", "OIII5007"]
 
 table = Table.read(opts.filename)
 

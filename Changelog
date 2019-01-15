@@ -1,3 +1,19 @@
+2019-01-15 Daniel Farrow
+
+    * line_classifier/lfs_ews/equivalent_width.py: Add option to normalize
+         dists
+    * scripts/add_prob_to_catalogue.py
+    * scripts/generate_ew_obs_cube.py: Now account for EWs greater than
+           considered range in normalisation
+    * scripts/integrate_ew_obs_cube.py: Plot and integrate the EW cubes
+    
+    Updated tests to use new EW cubes
+    * tests/conftest.py
+    * tests/data/config/lae_log_ew_obs_0_600_glim25_redo.fits
+    * tests/data/config/oii_log_ew_obs_0_600_glim25_redo.fits
+    * tests/data/universe.cfg
+    * tests/test_classification_prob.py
+
 2018-01-11 Daniel Farrow
 
    * line_classifier/lfs_ews/luminosity_function.py: Removed unused class
