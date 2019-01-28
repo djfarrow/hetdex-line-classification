@@ -38,9 +38,9 @@ pip install .
 
 If you use this code in a paper, please cite
 
-* [Leung et al 2017](http://adsabs.harvard.edu/abs/2017ApJ...843..130L)
-
-* Farrow et al (in prep)
+* [Leung et al 2017](http://adsabs.harvard.edu/abs/2017ApJ...843..130L)  - original code & method
+ 
+* Farrow et al (in prep)   - this rewrite and the new P(LAE) method
 
 ## References for numbers in the example config
 
