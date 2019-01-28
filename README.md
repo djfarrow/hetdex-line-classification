@@ -50,6 +50,7 @@ relative line strengths from
 and luminosity/equivalent width functions from
 
 [Ciardullo et al 2013](http://adsabs.harvard.edu/abs/2013ApJ...769...83C)
+
 Gronwall et al (in prep)
 
 and cosmology from
