@@ -1,7 +1,7 @@
 """
 
 Module to simulate LAE and OII
-equivalent widths based off of Leung+ 2016
+equivalent widths based off of Leung+ 2017
 (and some of his code as well). Interpolated 
 EW approach "InterpolatedEW" developed and
 presented in Farrow+ (in prep).

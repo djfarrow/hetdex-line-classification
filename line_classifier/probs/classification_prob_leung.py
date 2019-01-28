@@ -1,7 +1,7 @@
 """
 
 Carry out a Bayesian classification of a line source based off
-of Andrew Leung's paper (Leung+ 2016) and code.
+of Andrew Leung's paper (Leung+ 2017) and code.
 
 Author: Daniel Farrow 2018 (parts adapted from Andrew Leung's code)
 

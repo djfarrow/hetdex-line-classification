@@ -1,7 +1,7 @@
 """
 
 Carry out a Bayesian classification of a line source based off
-off the proposed classifier from Farrow+ 2018
+off the proposed classifier from Farrow+ (in prep.)
 
 Author: Daniel Farrow 2018 (parts adapted from Andrew Leung's code from Leung+ 2017)
 
