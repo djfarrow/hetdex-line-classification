@@ -41,3 +41,20 @@ If you use this code in a paper, please cite
 [Leung et al 2017](http://adsabs.harvard.edu/abs/2017ApJ...843..130L)
 
 Farrow et al (in prep)
+
+If you use the configuration file in the test directory you'll also need to cite the following. It uses 
+relative line strengths from
+
+[Anders et al 2003](http://adsabs.harvard.edu/abs/2003A%26A...401.1063A)
+
+and luminosity/equivalent width functions from
+
+[Ciardullo et al 2013](http://adsabs.harvard.edu/abs/2013ApJ...769...83C)
+Gronwall et al (in prep)
+
+and cosmology from
+
+[Planck 2013](https://ui.adsabs.harvard.edu/#abs/arXiv:1303.5076)
+
+
+
