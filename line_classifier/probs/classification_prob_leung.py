@@ -418,7 +418,7 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
             tprob_lines_lae, tprob_lines_oii = prob_additional_line(line_name, fluxes, flux_errs, taddl_fluxes, taddl_fluxes_errors, rlstrgth)
 
             if nany(tprob_lines_lae < 0.0) or nany(tprob_lines_oii < 0.0):
-                _logger.warn("Negative probability for line {:s}".format(line_name))
+                _logger.warning("Negative probability for line {:s}".format(line_name))
                 #dodgy_is = tprob_lines_lae < 0.0
                 #_logger.error(tprob_lines_lae[dodgy_is], fluxes[dodgy_is], taddl_fluxes[dodgy_is], zs_oii[dodgy_is], line_name)
                 #raise NegativeProbException("The probability here is negative!")
@@ -426,7 +426,7 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
             # Not an LAE or an OII?
             neither = (tprob_lines_lae + tprob_lines_oii) < 1e-30
             if nany(neither):
-                _logger.warn("Emission line {:s} doesn't look like it's from OII or LAE!")
+                _logger.warning("Emission line {:s} doesn't look like it's from OII or LAE!")
                 #_logger.error(fluxes[neither], flux_errs[neither], taddl_fluxes[neither], taddl_fluxes_errors[neither], zs_oii[neither], line_name)
                 #_logger.error(flim_file)
                 #raise UnrecognizedSourceException("Neither OII or LAE")
@@ -476,7 +476,7 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
         #      ews_obs[dodgy_is], prob_lines_lae[dodgy_is], prob_lines_oii[dodgy_is], zs_oii[dodgy_is])
         #raise NegativeProbException("""The probability here is negative or NAN! Could be low-z OII (z<0.05) or weird 
         #                               source neither OII or LAE!""")
-        _logger.warn("Some sources appear to be neither LAE or OII!")
+        _logger.warning("Some sources appear to be neither LAE or OII!")
 
     
     # Not a chance it's OII

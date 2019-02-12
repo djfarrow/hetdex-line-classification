@@ -49,11 +49,13 @@ else:
     ew_bins = linspace(log10(0.5), log10(ew_max), newbins)
 
 nbins = 20
+# Redshift range over which OII emitters 
+# are actually detectable
 if opts.oii:
     # Bins smaller for OII. ### Want this?
-    bins = linspace(0.0, 0.5, nbins)
+    bins = linspace(0.05, 0.5, nbins)
 else:
-    bins = linspace(1.8, 3.55, nbins)
+    bins = linspace(2.18, 3.51, nbins)
 
 zbcens = 0.5*(bins[:-1] + bins[1:])
 
@@ -73,6 +75,7 @@ if opts.plot:
 for fname in opts.cats:
 
     print(fname)
+
     table = Table.read(fname)
     
     ew_obs = table["EW_OBS"]
@@ -120,7 +123,6 @@ if opts.plot:
 
     for index in range(2, nbins, 2):
  
-
         norm_true = sum(hist_cube_true[index - 1, :])*ew_bsize
         hist_cube_true[index - 1,:] /= norm_true
   

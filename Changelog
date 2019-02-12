@@ -1,3 +1,12 @@
+2019-02-12 Daniel Farrow
+
+   * scripts/generate_ew_obs_cube.py: Shift z range slightly
+   * scripts/add_prob_to_catalogue.py: Don't remove EW_ERR from catalogue
+                                       (it's not used anyway)
+   Changed logging.warn -> logging.warning in the two files below:
+   * line_classifier/probs/classification_prob.py
+   * line_classifier/probs/classification_prob_leung.py 
+
 2019-01-15 Daniel Farrow
 
     * line_classifier/lfs_ews/luminosity_function.py: Increase multiplier

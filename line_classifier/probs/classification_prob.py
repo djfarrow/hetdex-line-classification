@@ -296,13 +296,13 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
 
             if nany(tn_lines_lae < 0.0) or nany(tn_lines_oii < 0.0):
                 dodgy_is = tn_lines_lae < 0.0
-                _logger.warn(tn_lines_lae[dodgy_is], fluxes[dodgy_is], taddl_fluxes[dodgy_is], zs_oii[dodgy_is], line_name)
-                _logger.warn("The line {:s} results in some negative probabilities".format(line_name))
+                _logger.warning(tn_lines_lae[dodgy_is], fluxes[dodgy_is], taddl_fluxes[dodgy_is], zs_oii[dodgy_is], line_name)
+                _logger.warning("The line {:s} results in some negative probabilities".format(line_name))
 
             # Not an LAE or an OII?
             neither = (tn_lines_lae + tn_lines_oii) < 1e-30
             if nany(neither):
-                _logger.warn("Source is neither OII or LAE based off of other emission lines")
+                _logger.warning("Source is neither OII or LAE based off of other emission lines")
 
             n_lines_lae *= tn_lines_lae
             n_lines_oii *= tn_lines_oii
