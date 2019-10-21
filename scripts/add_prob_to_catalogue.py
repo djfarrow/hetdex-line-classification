@@ -5,7 +5,7 @@ Add LAE/OII probability to to an existing catalogue
 """
 
 import argparse
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 from numpy import array
 from astropy.table import Table
 from line_classifier.probs.classification_prob_leung import source_prob as source_prob_leung

@@ -1,3 +1,17 @@
+2019-10-21 Daniel Farrow:
+
+   * scripts/add_prob_to_catalogue.py: Use py3 version of confgi parser
+   * line_classifier/probs/classification_prob_leung.py: Use numpy divide for
+               error handling (?)
+   * line_classifier/lfs_ews/equivalent_width.py: When setting EWs past the 
+               interpolation limits to the limits, add some leway to
+	       ensure they're really in the limits
+
+2019-08-13 Daniel Farrow:
+
+   * line_classifier/misc/tools.py: Fix bug which meant h=0.67 was hardcoded
+
+
 2019-02-12 Daniel Farrow
 
    * scripts/generate_ew_obs_cube.py: Shift z range slightly

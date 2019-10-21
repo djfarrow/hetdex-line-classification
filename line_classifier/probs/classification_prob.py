@@ -11,7 +11,7 @@ from __future__ import absolute_import
 
 import logging
 from numpy import any as nany
-from numpy import pi, square, exp, array, power, zeros, ones, isnan, sqrt, mean
+from numpy import pi, square, exp, array, power, zeros, ones, isnan, sqrt, mean, append, arange
 from scipy.stats import norm
 
 from line_classifier.lfs_ews.luminosity_function import LuminosityFunction
@@ -123,7 +123,6 @@ def return_ew_n(ew_obs, zs, ew_func):
        widths
     """
     ew_rest = ew_obs/(1. + zs)
-
     new = ew_func.return_new(zs, ew_rest)*ew_rest   
 
     return new
@@ -278,9 +277,11 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     # Always LAE according to Leung+ (seems to be true in the sims, very, very rare for OII)
     # Might need to change if EW_ERR grows for OII
     ew_n_oii[ews_obs < 0.0] = 0.0
+    ew_n_lae[ews_obs < 0.0] = 1.0
 
-    # Upper limit of the OII EW tabulation
+    # Upper limit of the OII EW tabulation - assume LAE
     ew_n_oii[ews_obs > oii_ew_max] = 0.0
+    ew_n_lae[ews_obs > oii_ew_max] = 1.0
 
     # Luminosity function factors
     lf_n_lae = return_lf_n(fluxes, zs, lf_lae, cosmo)
@@ -315,6 +316,7 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     # Include EW information but not emission lines
     nlae_ew = nlae*ew_n_lae
     noii_ew = noii*ew_n_oii
+
     prob_lae_given_data_lum_ew = nlae_ew/(nlae_ew + noii_ew)
 
     # Include emission lines but not EW
