@@ -26,7 +26,7 @@ def interp_lae_ew(datadir, config):
 
     fn = datadir.join("config").join(config.get("InterpolatedEW", "lae_file")).strpath
 
-    return InterpolatedEW(fn)
+    return InterpolatedParameter(fn, "EW_BCENS")
 
 """
 All these tests just comparisons to results of earlier runs
@@ -96,17 +96,14 @@ def test_n_additional_line(config, flim_file, name, line_fluxes, addl_fluxes, zo
     assert n_lines_lae == pytest.approx(epx_lae, rel=0.001)
 
 
-#
-# Update probs. Note the minimum OII redshift in tabulation of EWs means stuff at
-# z<2.2 is set to zero chance of being OII! XXX Maybe modify to test OII min z explicitly
 @pytest.mark.parametrize("z, fluxes, ew_obs, addl_fluxes, addl_names, e_prob_lae",
                                                                    [
                                                                     (1.9, 9e-17, 40, None, None, 1.0),
                                                                     (2.48, 9e-17, 40, None, None, 0.90076314314944406),
                                                                     (3.18, 9e-17, 40, None, None, 0.151037909544365),
-                                                                    (2.08, 9e-17, 40, [[5e-17]], ["NeIII"], 1.0),
-                                                                    (2.12, 9e-17, 40, [[6e-17]], ["H_beta"], 5.12614247e-09),
-                                                                    (2.08, 9e-17, 40, [[7e-17], [9e-17*4.752/1.791]], ["OIII4959", "OIII5007"], 1.0)
+                                                                    (2.5, 9e-17, 40, [[0.23*9e-17]], ["NeIII"], 0.33647488),
+                                                                    (2.6, 9e-17, 40, [[0.558*9e-17]], ["H_beta"], 0.77731764),
+                                                                    (2.7, 9e-17, 40, [[7e-17], [9e-17*4.752/1.791]], ["OIII4959", "OIII5007"], 0.63853473)
                                                                    ])
 
 def test_source_prob(tmpdir_with_config, config, z, fluxes, ew_obs, flim_file, addl_fluxes, addl_names, e_prob_lae):
@@ -129,10 +126,10 @@ def test_source_prob(tmpdir_with_config, config, z, fluxes, ew_obs, flim_file, a
         errors = array(errors)
 
         prob_lae_given_data = source_prob(config, [100.0], [0.0], [z], array([fluxes]), array([0.0]), [ew_obs], [0.0], None, None, 
-                                          array(addl_fluxes), errors, array(addl_names), flim_file)
+                                          array(addl_fluxes), errors, array(addl_names), flim_file, ignore_noise = True)
     else:
         prob_lae_given_data = source_prob(config, [100.0], [0.0], [z], array([fluxes]), array([0.0]), [ew_obs], [0.0], None, None, None, None, None,
-                                          flim_file)
+                                          flim_file, ignore_noise = True)
 
 
     if e_prob_lae > 0.0:

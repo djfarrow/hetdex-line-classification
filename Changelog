@@ -1,3 +1,27 @@
+2019-12-03 Daniel Farrow:
+
+   * line_classifier/lfs_ews/equivalent_width.py: Added an aborted attempt at
+                                                  adding flux to the EW cubes.
+						  Also changed EW interpolator to a
+						  class that interpolates
+						  anything.
+   * scripts/generate_flux_obs_cube.py: Code to generate an interpolation cube
+                                        for flux. 
+
+   * line_classifier/lfs_ews/luminosity_function.py: Python 3 stuff
+
+   * line_classifier/probs/classification_prob.py: Option to account for or
+            ignore noise added. Changed LAE part of line prob to ignore error on main
+            emission line flux. Added interpolated flux cube options
+
+   * line_classifier/probs/classification_prob_leung.py: Python 3 stuff
+   * tests/conftest.py: Python 3 stuff
+   * tests/data/universe.cfg: Added new options for flux cubes
+   * scripts/generate_ew_obs_cube.py: Account for sources below the bin range.
+           Also changed code sturcture to be more flexible
+   * tests/test_classification_prob.py: Updated tests to new code version
+   * scripts/add_prob_to_catalogue.py: Uses new "ignore error" flag
+
 2019-10-21 Daniel Farrow:
 
    * scripts/add_prob_to_catalogue.py: Use py3 version of confgi parser

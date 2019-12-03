@@ -15,7 +15,7 @@ from numpy import pi, square, exp, array, power, zeros, ones, isnan, sqrt, mean,
 from scipy.stats import norm
 
 from line_classifier.lfs_ews.luminosity_function import LuminosityFunction
-from line_classifier.lfs_ews.equivalent_width import EquivalentWidthAssigner, InterpolatedEW
+from line_classifier.lfs_ews.equivalent_width import EquivalentWidthAssigner, InterpolatedParameter
 from line_classifier.misc.tools import generate_cosmology_from_config
 
 from astropy.table import Table
@@ -42,7 +42,7 @@ def return_delta_volume(wl, lambda_, cosmo, wl_lae=1215.67):
     wl : array
         the observed wavelengths
     lambda_ : float
-        the wavelength of the line to consider
+        the REST FRAME wavelength of the line to consider
     cosmo : astropy.cosmology:FLRW
         a astropy cosmology object
     wl_lae : float
@@ -62,8 +62,7 @@ def return_delta_volume(wl, lambda_, cosmo, wl_lae=1215.67):
 
     x = cosmo.comoving_distance(zs).to("Mpc")
 
-    # Fixed delta wavelength, no z factors as 
-    # should all be Z_lae and all cancel
+    # Fixed delta wavelength
     return dvdz*wl_lae/lambda_
 
 def return_lf_n(flux, zs, lfa, cosmo):
@@ -106,7 +105,7 @@ def return_lf_n(flux, zs, lfa, cosmo):
     return lf_here
     
 
-def return_ew_n(ew_obs, zs, ew_func):
+def return_ew_n(ew_obs, zs, ew_func, interp_ew=True):
     """
  
     Return ew*dN/d(EW) for a redhsift of
@@ -123,11 +122,30 @@ def return_ew_n(ew_obs, zs, ew_func):
        widths
     """
     ew_rest = ew_obs/(1. + zs)
-    new = ew_func.return_new(zs, ew_rest)*ew_rest   
+
+    if interp_ew:
+        new = ew_func.return_n(zs, ew_rest)*ew_rest   
+    else:
+        new = (ew_func.ew_function(zs)(ew_rest))*ew_rest   
 
     return new
 
-def n_additional_line(line_fluxes, line_flux_errors, addl_fluxes, addl_fluxes_error, rel_line_strength):
+def lf_n_interp(fluxes, zs, lfa, finter, cosmo):
+    
+    n = zeros(len(fluxes)) 
+
+    # For bright stuff just use the LF
+    bright = fluxes > finter.maxp
+    n[bright] = return_lf_n(fluxes[bright], zs[bright], lfa, cosmo)
+
+    # For faint stuff use interpolated cube
+    faint = fluxes <= finter.maxp
+    n[faint] = finter.return_new(zs[faint], fluxes[faint])
+
+    return n
+
+
+def n_additional_line(line_fluxes, line_flux_errors, addl_fluxes, addl_fluxes_error, rel_line_strength, ignore_noise=False):
     """
     Return flux*dN/d(flux) for the flux of an additional
     emission line detected in the spectrum assuming the 
@@ -159,12 +177,18 @@ def n_additional_line(line_fluxes, line_flux_errors, addl_fluxes, addl_fluxes_er
 
     # Error on additional line + error on prediction using relative line strengths
     stddevs = addl_fluxes_error
-    stddevs_with_line = sqrt(square(stddevs) + square(rel_line_strength*line_flux_errors))
+
+    if ignore_noise:
+        stddevs_with_line = stddevs
+    else:
+        stddevs_with_line = sqrt(square(stddevs) + square(rel_line_strength*line_flux_errors))
 
     expected_flux = rel_line_strength*line_fluxes
 
     ndata_oii = norm.pdf(addl_fluxes, loc=expected_flux,  scale=stddevs_with_line)*abs(addl_fluxes)
-    ndata_lae = norm.pdf(addl_fluxes, loc=0.0,  scale=stddevs_with_line)*abs(addl_fluxes)
+
+    # No line here as this is chance of this flux from just noise
+    ndata_lae = norm.pdf(addl_fluxes, loc=0.0,  scale=stddevs)*abs(addl_fluxes)
 
     # Leave overall probability unchanged if line out of range or not measured
     out_of_range = (stddevs < 1e-30) | (addl_fluxes < -98)
@@ -185,7 +209,8 @@ def n_additional_line(line_fluxes, line_flux_errors, addl_fluxes, addl_fluxes_er
 
 
 def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, which_color, 
-                addl_fluxes, addl_fluxes_error, addl_line_names, flim_file, h=0.67, extended_output=False):
+                addl_fluxes, addl_fluxes_error, addl_line_names, flim_file, h=0.67, 
+                ignore_noise=False, extended_output=False):
     """
     Return P(LAE|DATA)/P(DATA) and P(DATA|LAE)P(LAE)/(P(DATA|OII)P(OII)) given 
 
@@ -217,8 +242,13 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
         used here) 
     h : float
         Hubbles constant/100
+    ignore_noise : bool
+        ignore the noise on the input
+        parameters and assume they are
+        perfect
     extended_output : bool
         Return extended output
+
 
     Returns
     -------
@@ -247,8 +277,15 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
 
     _logger.info("Using Hubbles Constant of {:f}".format(h*100))
 
-    lae_ew_obs = InterpolatedEW(config.get("InterpolatedEW", "lae_file"))
-    oii_ew_obs = InterpolatedEW(config.get("InterpolatedEW", "oii_file"))
+    interp_ew = True
+    lae_ew_obs = InterpolatedParameter(config.get("InterpolatedEW", "lae_file"), "EW_BCENS")
+    oii_ew_obs = InterpolatedParameter(config.get("InterpolatedEW", "oii_file"), "EW_BCENS")
+
+    if ignore_noise:
+        lae_ew_obs = lae_ew
+        oii_ew_obs = oii_ew
+        interp_ew = False
+
     oii_ew_max = config.getfloat("InterpolatedEW", "oii_ew_max")
 
     # Cast everything to arrays
@@ -271,8 +308,8 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     dvol_oii[zs_oii < oii_zlim] = 0.0
 
     # EW factors
-    ew_n_lae = return_ew_n(ews_obs, zs, lae_ew_obs)
-    ew_n_oii = return_ew_n(ews_obs, zs_oii, oii_ew_obs)
+    ew_n_lae = return_ew_n(ews_obs, zs, lae_ew_obs, interp_ew = interp_ew)
+    ew_n_oii = return_ew_n(ews_obs, zs_oii, oii_ew_obs, interp_ew = interp_ew)
 
     # Always LAE according to Leung+ (seems to be true in the sims, very, very rare for OII)
     # Might need to change if EW_ERR grows for OII
@@ -284,16 +321,26 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     ew_n_lae[ews_obs > oii_ew_max] = 1.0
 
     # Luminosity function factors
-    lf_n_lae = return_lf_n(fluxes, zs, lf_lae, cosmo)
-    lf_n_oii = return_lf_n(fluxes, zs_oii, lf_oii, cosmo)
+    if ignore_noise:
+        lf_n_lae = return_lf_n(fluxes, zs, lf_lae, cosmo)
+        lf_n_oii = return_lf_n(fluxes, zs_oii, lf_oii, cosmo)
+    else:
+        fluxes_lae = InterpolatedParameter(config.get("InterpolatedFlux", "lae_file"), "FLUX_OBS_BCENS")
+        fluxes_oii = InterpolatedParameter(config.get("InterpolatedFlux", "oii_file"), "FLUX_OBS_BCENS")
+
+        lf_n_lae = lf_n_interp(fluxes, zs, lf_lae, fluxes_lae, cosmo) 
+        lf_n_oii = lf_n_interp(fluxes, zs_oii, lf_oii, fluxes_oii, cosmo)
+
 
     # Add additional lines to classification probability (if they're there)
     n_lines_lae = 1.0
     n_lines_oii = 1.0
     if type(addl_line_names) != type(None):
         for line_name, taddl_fluxes, taddl_fluxes_errors in zip(addl_line_names, addl_fluxes[:], addl_fluxes_error[:]):
-
-            tn_lines_lae, tn_lines_oii = n_additional_line(fluxes, flux_errs, taddl_fluxes, taddl_fluxes_errors, config.getfloat("RelativeLineStrengths", line_name))
+ 
+            tn_lines_lae, tn_lines_oii = n_additional_line(fluxes, flux_errs, taddl_fluxes, taddl_fluxes_errors, 
+                                                           config.getfloat("RelativeLineStrengths", line_name), 
+                                                           ignore_noise=ignore_noise)
 
             if nany(tn_lines_lae < 0.0) or nany(tn_lines_oii < 0.0):
                 dodgy_is = tn_lines_lae < 0.0
@@ -332,4 +379,5 @@ def source_prob(config, ra, dec, zs, fluxes, flux_errs, ews_obs, ew_err, c_obs, 
     if not extended_output:
         return prob_lae_given_data
     else:
-        return prob_lae_given_data, prob_lae_given_data_justlum, prob_lae_given_data_lum_ew, prob_lae_given_data_lum_lines  
+        #return prob_lae_given_data, prob_lae_given_data_justlum, prob_lae_given_data_lum_ew, prob_lae_given_data_lum_lines, ew_n_lae, ew_n_oii 
+        return prob_lae_given_data, prob_lae_given_data_justlum, prob_lae_given_data_lum_ew, prob_lae_given_data_lum_lines

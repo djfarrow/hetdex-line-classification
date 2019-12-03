@@ -29,7 +29,7 @@ def gamma_integral_limits(s, min_, max_):
     """
 
     try:
-        iter(s < -1.0)
+        iter(array(s) < -1.0)
     except TypeError:
         if (max_ <= 0.0) | (min_ <= 0.0):
             raise Exception("Limits must both be positive and greater than 0!")
@@ -38,7 +38,7 @@ def gamma_integral_limits(s, min_, max_):
     else:
         if any(array(max_) <= 0.0) | any(array(min_) <= 0.0):
             raise Exception("Limits must both be positive and greater than 0!")
-        if any(s < -1.0):
+        if any(array(s) < -1.0):
             raise Exception("Input s must be > -1.0")
 
     try:
@@ -52,7 +52,7 @@ def gamma_integral_limits(s, min_, max_):
     max_ = array(max_)
     min_ = array(min_)
 
-    if any(min_ > 25.0):
+    if any(array(min_) > 25.0):
         raise TooLargeForGammaException("This routine only works for min < 25.0")
 
     # Use integration by parts to prove this

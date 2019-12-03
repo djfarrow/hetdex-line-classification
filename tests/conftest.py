@@ -5,7 +5,7 @@ from __future__ import (print_function, absolute_import)
 import py
 import os
 import shutil
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 import pytest
 
 from line_classifier.lfs_ews.equivalent_width import EquivalentWidthAssigner

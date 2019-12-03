@@ -121,12 +121,12 @@ class LFIntegrator(object):
             norms = -99.0*ones(len(alphas))
 
             # Sources out of range
-            undetectable = (llims < 0.1) | (zs < 0.0)
+            undetectable = (array(llims) < 0.1) | (array(zs) < 0.0)
             
             # Sources that are too bright to be likely candidates
             # (otherwise Gamma integral fails)
             undetectable = undetectable | (lmins/lstars >= 25.0)
-            detectable = (llims >= 0.1) & (zs >= 0.0)
+            detectable = (array(llims) >= 0.1) & (array(zs) >= 0.0)
 
             # Get lmax from lf
             lmaxes_for_norm = self.lf.return_lmax_at_z(zs)

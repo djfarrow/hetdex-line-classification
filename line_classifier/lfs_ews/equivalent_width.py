@@ -16,7 +16,7 @@ import json
 from numpy import log, exp, sqrt, square, copy, log10, isfinite, digitize, array, zeros, trapz, isnan
 from numpy.random import uniform, seed
 from scipy.integrate import quad
-from scipy.interpolate import interp1d, RegularGridInterpolator 
+from scipy.interpolate import interp1d, RegularGridInterpolator, LinearNDInterpolator 
 from scipy.special import erfc
 from astropy.io import fits
 
@@ -24,10 +24,11 @@ class NonFiniteInterpolationCube(Exception):
     pass 
 
 
-class InterpolatedEW(object):
+class InterpolatedParameter(object):
      """
-     Return the EW function by interpolating
-     an input table
+     Return the expected value of a 
+     parameter by interpolating an 
+     input table
 
      Parameters
      ----------
@@ -40,35 +41,60 @@ class InterpolatedEW(object):
          need to account for EWs outside
          of the range of the cube in norm
          (default: False)
-
+     regular_grid : bool (Optional)
+         are axis coordinates are arranged on a 
+         regular grid? Faster if true
      """
 
-     def __init__(self, filename, normalize=False):
+     def __init__(self, filename, paramname, regular_grid=True, normalize=False):
 
          hdus = fits.open(filename)
+
          self.zbcens = hdus["REDSHIFT"].data
-         ew = hdus["EW_BCENS"].data
+
+         p = hdus[paramname].data
          data = hdus["Primary"].data
 
          # Optionally normalize the distributions
          if normalize:
              for i in range(len(self.zbcens)):
-                 norm = trapz(data[i, :], x=ew)
+                 norm = trapz(data[i, :], x=p)
                  print(norm) 
                  if norm > 0.0:                    
                      data[i, :] /= norm
 
          self.minz = min(self.zbcens)
          self.maxz = max(self.zbcens)
-         self.minew = min(ew)
-         self.maxew = max(ew)
+         self.minp = min(p)
+         self.maxp = max(p)
+         #self.minf = min(self.fbcens)
+         #self.maxf = max(self.fbcens)
 
          if not all(isfinite(data).flatten()):
-            raise NonFiniteInterpolationCube("Non finite values in the EW interpolation cube: {:s}".format(filename))
+            raise NonFiniteInterpolationCube("Non finite values in the parameter interpolation cube: {:s}".format(filename))
 
-         self.interpolator = RegularGridInterpolator((self.zbcens, log10(ew)), data, method="linear", bounds_error=False)
 
-     def return_new(self, z, ew):
+         if regular_grid:
+             self.interpolator = RegularGridInterpolator((self.zbcens, log10(p)), data, method="linear", bounds_error=False)
+         else:
+
+             raise Exception("This section is untested and shouldn't be used for now")
+             npts = data.shape[0]*data.shape[1]*data.shape[2] 
+             points = zeros((npts, len(data.shape)))
+
+             n = 0
+             for i, z in enumerate(self.zbcens):
+                 for k, e in enumerate(p):
+
+                     points[n, 0] = z
+                     #points[n, 1] = f
+                     points[n, 1] = e
+
+                     n = n + 1
+       
+             self.interpolator = LinearNDInterpolator(points, data.flatten(), rescale=True)
+
+     def return_n(self, z, p):
          """
          Return the interpolated values 
          at z and EW. If outside of interpolation
@@ -78,15 +104,20 @@ class InterpolatedEW(object):
 
          """
          znew = copy(z)
-         ewnew = copy(ew)
+         pnew = copy(p)
 
+         # this is PROBABLY fine
          znew[z < self.minz] = 1.00001*self.minz
          znew[z > self.maxz] = 0.99999*self.maxz
 
-         ewnew[ew < self.minew] = 1.00001*self.minew
-         ewnew[ew > self.maxew] = 0.99999*self.maxew
+         # XXX this might not be OK, should check
+         pnew[p < self.minp] = 1.00001*self.minp
+         pnew[p > self.maxp] = 0.99999*self.maxp
  
-         interp_vals = self.interpolator((znew, log10(ewnew)))
+         #f[f < self.minf] = 1.00001*self.minf
+         #f[f > self.maxf] = 0.99999*self.maxf
+ 
+         interp_vals = self.interpolator((znew, log10(pnew)))
 
          return interp_vals
 
