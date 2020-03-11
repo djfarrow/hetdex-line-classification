@@ -154,8 +154,11 @@ class EquivalentWidthAssigner(object):
             self.w0_func = interp1d(self.zs, self.w0s, fill_value="extrapolate")
         else:
             self.w0_func = lambda x : self.w0s[0]
-
-        seed(seed=seed_)
+ 
+        # only change seed if asked, otherwise keep the
+        # old one
+        if seed_:
+            seed(seed=seed_)
 
     @classmethod
     def from_config(cls, config, section, **kwargs):

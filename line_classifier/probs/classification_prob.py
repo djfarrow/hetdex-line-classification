@@ -140,7 +140,7 @@ def lf_n_interp(fluxes, zs, lfa, finter, cosmo):
 
     # For faint stuff use interpolated cube
     faint = fluxes <= finter.maxp
-    n[faint] = finter.return_new(zs[faint], fluxes[faint])
+    n[faint] = finter.return_n(zs[faint], fluxes[faint])
 
     return n
 
