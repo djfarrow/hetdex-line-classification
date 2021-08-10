@@ -40,7 +40,7 @@ If you use this code in a paper, please cite
 
 * [Leung et al 2017](http://adsabs.harvard.edu/abs/2017ApJ...843..130L)  - original code & method
  
-* Farrow et al (in prep)   - this code rewrite and the new P(LAE) method
+* [Farrow et al 2021]( https://ui.adsabs.harvard.edu/abs/2021MNRAS.tmp.1824F) - this code rewrite and the new P(LAE) method
 
 ## References for numbers in the example config
 
